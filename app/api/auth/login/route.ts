@@ -1,8 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createAuthedClient, supabase } from '@/lib/supabase'
+import { createAuthedClient, isConfigured, supabase, supabaseUrl } from '@/lib/supabase'
 
 export async function POST(request: NextRequest) {
   try {
+    if (!isConfigured) {
+      console.error('Supabase env missing for auth/login:', { url: supabaseUrl })
+      return NextResponse.json(
+        { error: 'Supabase is not configured for this deployment. Add env vars and redeploy.' },
+        { status: 500 }
+      )
+    }
+
     const { email, password } = await request.json()
 
     if (!email || !password) {
