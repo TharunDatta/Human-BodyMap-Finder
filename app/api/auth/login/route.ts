@@ -41,8 +41,21 @@ export async function POST(request: NextRequest) {
         .eq('id', authData.user.id)
         .single()
 
-      if (userError && userError.code !== 'PGRST116') {
-        // PGRST116 = no rows found
+      if (userError && userError.code === 'PGRST116') {
+        const { error: insertError } = await authed
+          .from('users')
+          .insert({
+            id: authData.user.id,
+            email: authData.user.email,
+          })
+
+        if (insertError) {
+          return NextResponse.json(
+            { error: 'Failed to create user profile' },
+            { status: 500 }
+          )
+        }
+      } else if (userError) {
         return NextResponse.json(
           { error: 'Failed to fetch user profile' },
           { status: 500 }

@@ -15,6 +15,9 @@ export default function RegisterPage() {
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [info, setInfo] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const router = useRouter()
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -25,6 +28,7 @@ export default function RegisterPage() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    setInfo('')
 
     // Validation
     if (formData.password !== formData.confirmPassword) {
@@ -62,6 +66,16 @@ export default function RegisterPage() {
           message = 'Network error. Please check your connection and try again.'
         }
         setError(message)
+        return
+      }
+
+      if (data.confirmationRequired) {
+        setInfo('Email confirmation is required. Check your inbox and confirm your email, then sign in.')
+        return
+      }
+
+      if (!data.token || !data.userId) {
+        setInfo('Account created. Please check your email and sign in once confirmed.')
         return
       }
 
@@ -165,15 +179,27 @@ export default function RegisterPage() {
             <label className="block font-label font-medium text-sm text-on-background mb-2">
               Password
             </label>
-            <input
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              required
-              className="w-full px-4 py-2.5 rounded-lg border border-outline-variant/30 focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all font-body text-sm"
-              placeholder="At least 6 characters"
-            />
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                required
+                className="w-full px-4 py-2.5 pr-11 rounded-lg border border-outline-variant/30 focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all font-body text-sm"
+                placeholder="At least 6 characters"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(prev => !prev)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-outline hover:text-primary transition-colors"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                <span className="material-symbols-outlined text-[18px]">
+                  {showPassword ? 'visibility_off' : 'visibility'}
+                </span>
+              </button>
+            </div>
           </div>
 
           {/* Confirm Password */}
@@ -181,16 +207,35 @@ export default function RegisterPage() {
             <label className="block font-label font-medium text-sm text-on-background mb-2">
               Confirm Password
             </label>
-            <input
-              type="password"
-              name="confirmPassword"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              required
-              className="w-full px-4 py-2.5 rounded-lg border border-outline-variant/30 focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all font-body text-sm"
-              placeholder="Confirm your password"
-            />
+            <div className="relative">
+              <input
+                type={showConfirmPassword ? 'text' : 'password'}
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                required
+                className="w-full px-4 py-2.5 pr-11 rounded-lg border border-outline-variant/30 focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all font-body text-sm"
+                placeholder="Confirm your password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(prev => !prev)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-outline hover:text-primary transition-colors"
+                aria-label={showConfirmPassword ? 'Hide password confirmation' : 'Show password confirmation'}
+              >
+                <span className="material-symbols-outlined text-[18px]">
+                  {showConfirmPassword ? 'visibility_off' : 'visibility'}
+                </span>
+              </button>
+            </div>
           </div>
+
+          {/* Info Message */}
+          {info && (
+            <div className="bg-primary-container/20 border border-primary/30 text-on-primary-container p-3 rounded-lg text-sm font-body">
+              {info}
+            </div>
+          )}
 
           {/* Error Message */}
           {error && (

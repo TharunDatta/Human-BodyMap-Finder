@@ -40,29 +40,34 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (authData.session?.access_token) {
-      const authed = createAuthedClient(authData.session.access_token)
-      const { error: userError } = await authed
-        .from('users')
-        .insert({
-          id: authData.user.id,
-          email,
-          firstName,
-          lastName,
-          phone: phone || null,
-        })
+    if (!authData.session?.access_token) {
+      return NextResponse.json({
+        confirmationRequired: true,
+        email: authData.user.email,
+      })
+    }
 
-      if (userError) {
-        console.error('User creation error:', userError)
-        return NextResponse.json(
-          { error: 'Failed to create user profile' },
-          { status: 500 }
-        )
-      }
+    const authed = createAuthedClient(authData.session.access_token)
+    const { error: userError } = await authed
+      .from('users')
+      .insert({
+        id: authData.user.id,
+        email,
+        firstName,
+        lastName,
+        phone: phone || null,
+      })
+
+    if (userError) {
+      console.error('User creation error:', userError)
+      return NextResponse.json(
+        { error: 'Failed to create user profile' },
+        { status: 500 }
+      )
     }
 
     return NextResponse.json({
-      token: authData.session?.access_token,
+      token: authData.session.access_token,
       userId: authData.user.id,
       email: authData.user.email,
     })
