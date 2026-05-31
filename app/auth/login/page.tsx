@@ -33,6 +33,7 @@ export default function LoginPage() {
       // Store auth token
       localStorage.setItem('authToken', data.token)
       localStorage.setItem('userId', data.userId)
+      localStorage.setItem('userEmail', email)
 
       router.push('/profile')
     } catch (err) {

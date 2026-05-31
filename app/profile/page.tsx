@@ -29,6 +29,7 @@ export default function ProfilePage() {
 
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [userId, setUserId] = useState('')
+  const [authToken, setAuthToken] = useState('')
   const [userProfile, setUserProfile] = useState<{ firstName: string; lastName: string; email: string; phone?: string } | null>(null)
 
   const [bookings, setBookings] = useState<Booking[]>([])
@@ -48,6 +49,7 @@ export default function ProfilePage() {
 
     setIsLoggedIn(true)
     setUserId(storedUserId)
+    setAuthToken(token)
     
     // Simulate parsing user profiles from local store
     try {
@@ -70,7 +72,11 @@ export default function ProfilePage() {
       try {
         setLoading(true)
         setError('')
-        const res = await fetch(`/api/bookings?userId=${userId}`)
+        const headers: Record<string, string> = {}
+        if (authToken) {
+          headers.Authorization = `Bearer ${authToken}`
+        }
+        const res = await fetch(`/api/bookings?userId=${userId}`, { headers })
         if (!res.ok) throw new Error('Failed to load appointments')
         const data = await res.json()
         setBookings(data)

@@ -27,6 +27,7 @@ export default function BookingPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [userId, setUserId] = useState('')
   const [userEmail, setUserEmail] = useState('')
+  const [authToken, setAuthToken] = useState('')
 
   // Form states
   const [firstName, setFirstName] = useState('')
@@ -68,6 +69,7 @@ export default function BookingPage() {
     if (storedToken && storedUserId) {
       setIsLoggedIn(true)
       setUserId(storedUserId)
+      setAuthToken(storedToken)
 
       // Pre-populate details from local storage or context if they exist
       // Since users register through auth/register, we might have their name stored
@@ -95,9 +97,14 @@ export default function BookingPage() {
     setError('')
 
     try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      if (authToken) {
+        headers.Authorization = `Bearer ${authToken}`
+      }
+
       const res = await fetch('/api/bookings', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           userId,
           doctorId: doctor.id,

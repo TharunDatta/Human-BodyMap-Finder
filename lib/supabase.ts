@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+export const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+export const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 
 // Helper to check if URL is a valid HTTP/HTTPS format
 const isValidUrl = (url: string) => {
@@ -18,6 +18,17 @@ const finalUrl = isConfigured ? supabaseUrl : 'https://placeholder-project.supab
 const finalKey = isConfigured ? supabaseAnonKey : 'dummy-anon-key'
 
 export const supabase = createClient(finalUrl, finalKey)
+
+// Create a client scoped to a user session for RLS-protected queries.
+export function createAuthedClient(accessToken: string) {
+  return createClient(finalUrl, finalKey, {
+    global: {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+  })
+}
 
 export type Database = {
   public: {

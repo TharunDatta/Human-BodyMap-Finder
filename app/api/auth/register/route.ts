@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { createAuthedClient, supabase } from '@/lib/supabase'
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,23 +32,25 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Create user profile in users table
-    const { error: userError } = await supabase
-      .from('users')
-      .insert({
-        id: authData.user.id,
-        email,
-        firstName,
-        lastName,
-        phone: phone || null,
-      })
+    if (authData.session?.access_token) {
+      const authed = createAuthedClient(authData.session.access_token)
+      const { error: userError } = await authed
+        .from('users')
+        .insert({
+          id: authData.user.id,
+          email,
+          firstName,
+          lastName,
+          phone: phone || null,
+        })
 
-    if (userError) {
-      console.error('User creation error:', userError)
-      return NextResponse.json(
-        { error: 'Failed to create user profile' },
-        { status: 500 }
-      )
+      if (userError) {
+        console.error('User creation error:', userError)
+        return NextResponse.json(
+          { error: 'Failed to create user profile' },
+          { status: 500 }
+        )
+      }
     }
 
     return NextResponse.json({

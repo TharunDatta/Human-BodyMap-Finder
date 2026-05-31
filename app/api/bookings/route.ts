@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase, isConfigured } from '@/lib/supabase'
+import { createAuthedClient, supabase, isConfigured } from '@/lib/supabase'
 
 // Helper to generate reference numbers like BM-XXXXX
 function generateReferenceNumber(): string {
@@ -15,9 +15,15 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const userId = searchParams.get('userId')
+    const authHeader = request.headers.get('authorization') || ''
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : ''
 
     if (!userId) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
+    }
+
+    if (!token) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
 
     if (!isConfigured) {
@@ -26,7 +32,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Retrieve user's bookings joined with doctor details
-    const { data, error } = await supabase
+    const authed = createAuthedClient(token)
+    const { data, error } = await authed
       .from('bookings')
       .select(`
         *,
@@ -55,12 +62,18 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const { userId, doctorId, date, time, reason, rescheduleRef } = await request.json()
+    const authHeader = request.headers.get('authorization') || ''
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : ''
 
     if (!userId || !doctorId || !date || !time) {
       return NextResponse.json(
         { error: 'User ID, Doctor ID, Date, and Time are required' },
         { status: 400 }
       )
+    }
+
+    if (!token) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
 
     if (!isConfigured) {
@@ -79,11 +92,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Resolve doctorId: if it's a numeric mock ID (like index + 1), let's find the real UUID doctor first
+    const authed = createAuthedClient(token)
     let resolvedDoctorId = doctorId
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(doctorId)
 
     if (!isUuid) {
-      const { data: doctorsData, error: docsError } = await supabase.from('doctors').select('id')
+      const { data: doctorsData, error: docsError } = await authed.from('doctors').select('id')
       if (docsError) {
         return NextResponse.json({ error: 'Failed to resolve doctor ID' }, { status: 500 })
       }
@@ -102,7 +116,7 @@ export async function POST(request: NextRequest) {
     let attempts = 0
 
     while (!isUnique && attempts < 5) {
-      const { data: existing } = await supabase
+      const { data: existing } = await authed
         .from('bookings')
         .select('id')
         .eq('referenceNumber', referenceNumber)
@@ -118,14 +132,14 @@ export async function POST(request: NextRequest) {
 
     // If rescheduling, cancel the old booking!
     if (rescheduleRef) {
-      await supabase
+      await authed
         .from('bookings')
         .update({ status: 'cancelled' })
         .eq('referenceNumber', rescheduleRef)
     }
 
     // Insert new booking
-    const { data: bookingData, error: bookingError } = await supabase
+    const { data: bookingData, error: bookingError } = await authed
       .from('bookings')
       .insert({
         userId,

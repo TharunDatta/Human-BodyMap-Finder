@@ -6,18 +6,18 @@ export default function Home() {
   return (
     <>
       {/* Navigation */}
-      <nav className="w-full sticky top-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md bg-slate-50/50 dark:bg-slate-800/50">
+      <nav className="w-full sticky top-0 z-50 bg-surface/95 backdrop-blur-md border-b border-outline-variant/20">
         <div className="flex justify-between items-center px-8 py-4 max-w-7xl mx-auto">
           <div className="flex items-center gap-2 text-primary font-headline font-bold text-xl tracking-tight">
             <span className="material-symbols-outlined fill-icon">ecg_heart</span>
             BodyMap
           </div>
           <div className="hidden md:flex items-center gap-8 font-headline font-medium text-sm">
-            <Link href="/" className="text-slate-600 hover:text-primary transition-colors">Home</Link>
+            <Link href="/" className="text-primary font-bold">Home</Link>
             <Link href="/explore" className="text-slate-600 hover:text-primary transition-colors">Explore Body</Link>
-            <Link href="/doctors" className="text-primary font-bold">Doctors</Link>
+            <Link href="/doctors" className="text-slate-600 hover:text-primary transition-colors">Doctors</Link>
           </div>
-          <Link href="/login" className="bg-gradient-to-br from-primary to-primary-container text-on-primary font-label font-semibold text-sm px-6 py-2.5 rounded-xl hover:shadow-[0px_12px_32px_rgba(45,51,55,0.06)] transition-all">
+          <Link href="/auth/login" className="bg-gradient-to-br from-primary to-primary-container text-on-primary font-label font-semibold text-sm px-6 py-2.5 rounded-xl hover:shadow-[0px_12px_32px_rgba(45,51,55,0.06)] transition-all">
             Login
           </Link>
         </div>

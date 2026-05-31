@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { createAuthedClient, supabase } from '@/lib/supabase'
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,19 +25,21 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get or create user profile in users table
-    const { data: userData, error: userError } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', authData.user.id)
-      .single()
+    if (authData.session?.access_token) {
+      const authed = createAuthedClient(authData.session.access_token)
+      const { error: userError } = await authed
+        .from('users')
+        .select('id')
+        .eq('id', authData.user.id)
+        .single()
 
-    if (userError && userError.code !== 'PGRST116') {
-      // PGRST116 = no rows found
-      return NextResponse.json(
-        { error: 'Failed to fetch user profile' },
-        { status: 500 }
-      )
+      if (userError && userError.code !== 'PGRST116') {
+        // PGRST116 = no rows found
+        return NextResponse.json(
+          { error: 'Failed to fetch user profile' },
+          { status: 500 }
+        )
+      }
     }
 
     return NextResponse.json({

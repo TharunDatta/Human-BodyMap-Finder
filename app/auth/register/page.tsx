@@ -62,6 +62,11 @@ export default function RegisterPage() {
       // Store auth token
       localStorage.setItem('authToken', data.token)
       localStorage.setItem('userId', data.userId)
+      localStorage.setItem('userEmail', formData.email)
+      localStorage.setItem('userName', `${formData.firstName} ${formData.lastName}`.trim())
+      if (formData.phone) {
+        localStorage.setItem('userPhone', formData.phone)
+      }
 
       router.push('/profile')
     } catch (err) {
