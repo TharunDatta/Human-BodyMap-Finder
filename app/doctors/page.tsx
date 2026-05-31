@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
+import AuthButton from '@/components/AuthButton'
 import { useRouter, useSearchParams } from 'next/navigation'
 
 interface Doctor {
@@ -189,9 +190,7 @@ function DoctorsPageContent() {
             <Link href="/explore" className="text-slate-600 hover:text-primary transition-colors">Explore Body</Link>
             <Link href="/doctors" className="text-primary font-bold border-b-2 border-primary pb-1">Doctors</Link>
           </div>
-          <Link href="/auth/login" className="bg-gradient-to-br from-primary to-primary-container text-on-primary font-label font-semibold text-sm px-6 py-2.5 rounded-xl hover:shadow-[0px_12px_32px_rgba(45,51,55,0.06)] transition-all">
-            Login
-          </Link>
+          <AuthButton />
         </div>
       </nav>
 

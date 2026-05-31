@@ -18,6 +18,8 @@ interface Slot {
   iso: string
 }
 
+const isValidJwt = (token: string) => token.split('.').length === 3
+
 export default function BookingPage() {
   const router = useRouter()
 
@@ -63,10 +65,11 @@ export default function BookingPage() {
     }
 
     // 2. Check if logged in
-    const storedToken = localStorage.getItem('authToken')
-    const storedUserId = localStorage.getItem('userId')
+    const storedToken = localStorage.getItem('authToken') || ''
+    const storedUserId = localStorage.getItem('userId') || ''
+    const hasValidSession = storedToken && storedUserId && isValidJwt(storedToken)
 
-    if (storedToken && storedUserId) {
+    if (hasValidSession) {
       setIsLoggedIn(true)
       setUserId(storedUserId)
       setAuthToken(storedToken)
@@ -79,6 +82,12 @@ export default function BookingPage() {
         if (storedEmail) setEmail(storedEmail)
         setUserEmail(storedEmail)
       } catch (err) {}
+    } else if (storedToken || storedUserId) {
+      localStorage.removeItem('authToken')
+      localStorage.removeItem('userId')
+      localStorage.removeItem('userEmail')
+      localStorage.removeItem('userName')
+      localStorage.removeItem('userPhone')
     }
 
     // 3. Check for rescheduling
@@ -98,7 +107,7 @@ export default function BookingPage() {
 
     try {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-      if (authToken) {
+      if (authToken && isValidJwt(authToken)) {
         headers.Authorization = `Bearer ${authToken}`
       }
 
@@ -118,7 +127,12 @@ export default function BookingPage() {
       const data = await res.json()
 
       if (!res.ok) {
-        throw new Error(data.error || 'Failed to complete booking')
+        const message = data.error || 'Failed to complete booking'
+        if (/jwt|token|auth/i.test(message)) {
+          setError('Your session expired. Please sign in again and retry your booking.')
+          return
+        }
+        throw new Error(message)
       }
 
       // Success - Save reference number and transition to step 3 (done)

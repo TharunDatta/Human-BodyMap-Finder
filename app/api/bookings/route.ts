@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAuthedClient, supabase, isConfigured } from '@/lib/supabase'
 
+const isValidJwt = (token: string) => token.split('.').length === 3
+
 // Helper to generate reference numbers like BM-XXXXX
 function generateReferenceNumber(): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
@@ -22,8 +24,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
     }
 
-    if (!token) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    if (!token || !isValidJwt(token)) {
+      return NextResponse.json({ error: 'Invalid session. Please sign in again.' }, { status: 401 })
     }
 
     if (!isConfigured) {
@@ -72,8 +74,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (!token) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    if (!token || !isValidJwt(token)) {
+      return NextResponse.json({ error: 'Invalid session. Please sign in again.' }, { status: 401 })
     }
 
     if (!isConfigured) {

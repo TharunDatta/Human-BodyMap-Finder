@@ -55,7 +55,13 @@ export default function RegisterPage() {
       const data = await response.json()
 
       if (!response.ok) {
-        setError(data.error || 'Registration failed')
+        let message = data.error || 'Registration failed'
+        if (/supabase is not configured/i.test(message)) {
+          message = 'Server configuration error. Please try again after deployment finishes.'
+        } else if (/fetch failed/i.test(message)) {
+          message = 'Network error. Please check your connection and try again.'
+        }
+        setError(message)
         return
       }
 

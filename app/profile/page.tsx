@@ -24,6 +24,8 @@ interface Booking {
   doctors?: Doctor
 }
 
+const isValidJwt = (token: string) => token.split('.').length === 3
+
 export default function ProfilePage() {
   const router = useRouter()
 
@@ -42,7 +44,12 @@ export default function ProfilePage() {
     const token = localStorage.getItem('authToken')
     const storedUserId = localStorage.getItem('userId')
 
-    if (!token || !storedUserId) {
+    if (!token || !storedUserId || !isValidJwt(token)) {
+      localStorage.removeItem('authToken')
+      localStorage.removeItem('userId')
+      localStorage.removeItem('userEmail')
+      localStorage.removeItem('userName')
+      localStorage.removeItem('userPhone')
       router.push('/auth/login')
       return
     }

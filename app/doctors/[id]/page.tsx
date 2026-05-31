@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import AuthButton from '@/components/AuthButton'
 import { useRouter, useParams } from 'next/navigation'
 import { 
   getWeekStart, 
@@ -197,9 +198,7 @@ export default function DoctorDetailPage() {
             <Link href="/explore" className="text-slate-600 hover:text-primary transition-colors">Explore Body</Link>
             <Link href="/doctors" className="text-primary font-bold">Doctors</Link>
           </div>
-          <Link href="/auth/login" className="bg-gradient-to-br from-primary to-primary-container text-on-primary font-label font-semibold text-sm px-6 py-2.5 rounded-xl hover:shadow-[0px_12px_32px_rgba(45,51,55,0.06)] transition-all">
-            Login
-          </Link>
+          <AuthButton />
         </div>
       </nav>
 

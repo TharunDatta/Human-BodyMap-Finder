@@ -28,3 +28,28 @@ body {
 .time-selected {
   @apply bg-surface-container-lowest border-primary text-primary;
 }
+
+.how-it-works-step {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.how-it-works-step:hover {
+  transform: translateY(-8px);
+}
+
+.how-it-works-step:hover .step-number {
+  transform: scale(1.15);
+  background-color: #a9f0e3;
+  box-shadow: 0 0 20px rgba(31, 106, 96, 0.2);
+}
+
+.connecting-line {
+  position: absolute;
+  top: 40px;
+  left: 10%;
+  right: 10%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #9be2d5, transparent);
+  z-index: 0;
+  opacity: 0.3;
+}

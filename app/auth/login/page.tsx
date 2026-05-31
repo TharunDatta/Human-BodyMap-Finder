@@ -26,7 +26,13 @@ export default function LoginPage() {
       const data = await response.json()
 
       if (!response.ok) {
-        setError(data.error || 'Login failed')
+        let message = data.error || 'Login failed'
+        if (/supabase is not configured/i.test(message)) {
+          message = 'Server configuration error. Please try again after deployment finishes.'
+        } else if (/fetch failed/i.test(message)) {
+          message = 'Network error. Please check your connection and try again.'
+        }
+        setError(message)
         return
       }
 

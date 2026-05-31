@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
+import AuthButton from '@/components/AuthButton'
 import { useRouter } from 'next/navigation'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
@@ -448,9 +449,7 @@ export default function ExplorePage() {
             <Link href="/explore" className="text-primary font-bold">Explore Body</Link>
             <Link href="/doctors" className="text-slate-600 hover:text-primary transition-colors">Doctors</Link>
           </div>
-          <Link href="/auth/login" className="bg-gradient-to-br from-primary to-primary-container text-on-primary font-label font-semibold text-sm px-6 py-2.5 rounded-xl hover:shadow-[0px_12px_32px_rgba(45,51,55,0.06)] transition-all">
-            Login
-          </Link>
+          <AuthButton />
         </div>
       </nav>
 
