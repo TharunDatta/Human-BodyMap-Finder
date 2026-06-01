@@ -12,6 +12,7 @@ type ColumnMap = {
 const COLUMN_MAPS: ColumnMap[] = [
   { userId: 'user_id', doctorId: 'doctor_id', referenceNumber: 'reference_number' },
   { userId: 'userId', doctorId: 'doctorId', referenceNumber: 'referenceNumber' },
+  { userId: 'userid', doctorId: 'doctorid', referenceNumber: 'referencenumber' },
 ]
 
 const isMissingColumnError = (error: any) => {
