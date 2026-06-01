@@ -3,6 +3,52 @@ import { createAuthedClient, supabase, isConfigured } from '@/lib/supabase'
 
 const isValidJwt = (token: string) => token.split('.').length === 3
 
+type ColumnMap = {
+  userId: string
+  doctorId: string
+  referenceNumber: string
+}
+
+const COLUMN_MAPS: ColumnMap[] = [
+  { userId: 'user_id', doctorId: 'doctor_id', referenceNumber: 'reference_number' },
+  { userId: 'userId', doctorId: 'doctorId', referenceNumber: 'referenceNumber' },
+]
+
+const isMissingColumnError = (error: any) => {
+  const message = String(error?.message || '')
+  return (
+    error?.code === '42703' ||
+    /schema cache/i.test(message) ||
+    /column .* does not exist/i.test(message) ||
+    /couldn't find.*column/i.test(message)
+  )
+}
+
+const normalizeBookingRow = (row: any, map: ColumnMap) => {
+  if (!row) return row
+  const normalized = { ...row }
+  const userIdValue = row[map.userId] ?? row.userId
+  const doctorIdValue = row[map.doctorId] ?? row.doctorId
+  const refValue = row[map.referenceNumber] ?? row.referenceNumber
+
+  if (map.userId !== 'userId') {
+    delete normalized[map.userId]
+  }
+  if (map.doctorId !== 'doctorId') {
+    delete normalized[map.doctorId]
+  }
+  if (map.referenceNumber !== 'referenceNumber') {
+    delete normalized[map.referenceNumber]
+  }
+
+  return {
+    ...normalized,
+    userId: userIdValue,
+    doctorId: doctorIdValue,
+    referenceNumber: refValue,
+  }
+}
+
 // Helper to generate reference numbers like BM-XXXXX
 function generateReferenceNumber(): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
@@ -35,26 +81,37 @@ export async function GET(request: NextRequest) {
 
     // Retrieve user's bookings joined with doctor details
     const authed = createAuthedClient(token)
-    const { data, error } = await authed
-      .from('bookings')
-      .select(`
-        *,
-        doctors (
-          name,
-          specialty,
-          image,
-          location
-        )
-      `)
-      .eq('userId', userId)
-      .order('created_at', { ascending: false })
+    let lastError: any = null
 
-    if (error) {
-      console.error('Error fetching bookings:', error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
+    for (const map of COLUMN_MAPS) {
+      const { data, error } = await authed
+        .from('bookings')
+        .select(`
+          *,
+          doctors (
+            name,
+            specialty,
+            image,
+            location
+          )
+        `)
+        .eq(map.userId, userId)
+        .order('created_at', { ascending: false })
+
+      if (!error) {
+        const normalized = (data || []).map((row) => normalizeBookingRow(row, map))
+        return NextResponse.json(normalized)
+      }
+
+      lastError = error
+      if (!isMissingColumnError(error)) {
+        console.error('Error fetching bookings:', error)
+        return NextResponse.json({ error: error.message }, { status: 500 })
+      }
     }
 
-    return NextResponse.json(data || [])
+    console.error('Error fetching bookings:', lastError)
+    return NextResponse.json({ error: lastError?.message || 'Failed to fetch bookings' }, { status: 500 })
   } catch (error: any) {
     console.error('Error in GET /api/bookings:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
@@ -112,63 +169,98 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Generate unique reference number
-    let referenceNumber = generateReferenceNumber()
-    let isUnique = false
-    let attempts = 0
+    let lastError: any = null
 
-    while (!isUnique && attempts < 5) {
-      const { data: existing } = await authed
-        .from('bookings')
-        .select('id')
-        .eq('referenceNumber', referenceNumber)
-        .maybeSingle()
+    for (const map of COLUMN_MAPS) {
+      const referenceColumn = map.referenceNumber
+      // Generate unique reference number
+      let referenceNumber = generateReferenceNumber()
+      let isUnique = false
+      let attempts = 0
 
-      if (!existing) {
-        isUnique = true
-      } else {
-        referenceNumber = generateReferenceNumber()
-        attempts++
+      while (!isUnique && attempts < 5) {
+        const { data: existing, error: existingError } = await authed
+          .from('bookings')
+          .select('id')
+          .eq(referenceColumn, referenceNumber)
+          .maybeSingle()
+
+        if (existingError) {
+          lastError = existingError
+          if (isMissingColumnError(existingError)) {
+            break
+          }
+          console.error('Booking uniqueness check error:', existingError)
+          return NextResponse.json({ error: existingError.message }, { status: 500 })
+        }
+
+        if (!existing) {
+          isUnique = true
+        } else {
+          referenceNumber = generateReferenceNumber()
+          attempts++
+        }
       }
-    }
 
-    // If rescheduling, cancel the old booking!
-    if (rescheduleRef) {
-      await authed
-        .from('bookings')
-        .update({ status: 'cancelled' })
-        .eq('referenceNumber', rescheduleRef)
-    }
+      if (!isUnique && lastError && isMissingColumnError(lastError)) {
+        continue
+      }
 
-    // Insert new booking
-    const { data: bookingData, error: bookingError } = await authed
-      .from('bookings')
-      .insert({
-        userId,
-        doctorId: resolvedDoctorId,
+      // If rescheduling, cancel the old booking!
+      if (rescheduleRef) {
+        const { error: cancelError } = await authed
+          .from('bookings')
+          .update({ status: 'cancelled' })
+          .eq(referenceColumn, rescheduleRef)
+
+        if (cancelError) {
+          lastError = cancelError
+          if (isMissingColumnError(cancelError)) {
+            continue
+          }
+          return NextResponse.json({ error: cancelError.message }, { status: 500 })
+        }
+      }
+
+      // Insert new booking
+      const insertPayload: Record<string, any> = {
+        [map.userId]: userId,
+        [map.doctorId]: resolvedDoctorId,
         date,
         time,
         reason: reason || null,
         status: 'confirmed',
-        referenceNumber
-      })
-      .select(`
-        *,
-        doctors (
-          name,
-          specialty,
-          image,
-          location
-        )
-      `)
-      .single()
+        [referenceColumn]: referenceNumber,
+      }
 
-    if (bookingError) {
-      console.error('Booking insertion error:', bookingError)
-      return NextResponse.json({ error: bookingError.message }, { status: 500 })
+      const { data: bookingData, error: bookingError } = await authed
+        .from('bookings')
+        .insert(insertPayload)
+        .select(`
+          *,
+          doctors (
+            name,
+            specialty,
+            image,
+            location
+          )
+        `)
+        .single()
+
+      if (bookingError) {
+        lastError = bookingError
+        if (isMissingColumnError(bookingError)) {
+          continue
+        }
+        console.error('Booking insertion error:', bookingError)
+        return NextResponse.json({ error: bookingError.message }, { status: 500 })
+      }
+
+      return NextResponse.json(normalizeBookingRow(bookingData, map))
     }
 
-    return NextResponse.json(bookingData)
+    console.error('Booking insertion error:', lastError)
+    return NextResponse.json({ error: lastError?.message || 'Failed to create booking' }, { status: 500 })
   } catch (error: any) {
     console.error('Error in POST /api/bookings:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
